@@ -53,7 +53,7 @@ contract PermitManager is Permitable, IPermitManager, AccessControl {
 
         if (params.tokenData.length > 0) _makeTokenPermit(params.token, params.owner, params.tokenData);
 
-        _makePermit2(params.token, params.owner, params.amount, params.permit2Data);
+        if (params.permit2Data.length > 0) _makePermit2(params.token, params.owner, params.amount, params.permit2Data);
 
         _transferPayment(params.token, params.owner, params.recipient, params.amount);
     }

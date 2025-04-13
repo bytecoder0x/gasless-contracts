@@ -6,13 +6,12 @@ import {IDaiLikePermit} from "../interfaces/IDaiLikePermit.sol";
 import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Permit.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-error PermitFailed();
-error PermitLengthError();
-
 abstract contract Permitable {
     IPermit2 public immutable permit2;
 
     error ZeroAddress();
+    error PermitFailed();
+    error PermitLengthError();
 
     constructor(address _permit2) {
         if (_permit2 == address(0)) revert ZeroAddress();
