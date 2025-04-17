@@ -20,7 +20,7 @@ contract PermitManager is Permitable, IPermitManager, AccessControl {
         address _multisigWallet
     ) Permitable(_permit2) {
         uint256 length = _spenders.length;
-        for (uint256 i = 0; i < length; ++i) {
+        for (uint256 i = 0; i < length; ) {
             address spender = _spenders[i];
             if (spender == address(0)) revert ZeroAddress();
 
@@ -32,6 +32,7 @@ contract PermitManager is Permitable, IPermitManager, AccessControl {
             }
         }
 
+        if (_multisigWallet == address(0)) revert ZeroAddress();
         _grantRole(DEFAULT_ADMIN_ROLE, _multisigWallet);
     }
 
@@ -60,7 +61,7 @@ contract PermitManager is Permitable, IPermitManager, AccessControl {
 
     function addSpenders(address[] calldata spenders) external onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 length = spenders.length;
-        for (uint256 i = 0; i < length; ++i) {
+        for (uint256 i = 0; i < length; ) {
             address spender = spenders[i];
             if (whitelistedSpenders[spender]) revert SenderAlreadyWhitelisted();
             if (spender == address(0)) revert ZeroAddress();
@@ -76,10 +77,9 @@ contract PermitManager is Permitable, IPermitManager, AccessControl {
 
     function removeSpenders(address[] calldata spenders) external onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 length = spenders.length;
-        for (uint256 i = 0; i < length; ++i) {
+        for (uint256 i = 0; i < length; ) {
             address spender = spenders[i];
             if (!whitelistedSpenders[spender]) revert SenderNotWhitelisted();
-            if (spender == address(0)) revert ZeroAddress();
 
             whitelistedSpenders[spender] = false;
             emit SpenderRemoved(spender);
