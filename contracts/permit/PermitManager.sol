@@ -7,47 +7,39 @@ import {Permitable} from "./components/Permitable.sol";
 import {AccessControl} from "@openzeppelin/contracts/access/AccessControl.sol";
 
 contract PermitManager is Permitable, IPermitManager, AccessControl {
-    mapping(address => bool) public whitelistedSpenders;
-
-    modifier onlyWhitelistedSpender() {
-        if (!whitelistedSpenders[msg.sender]) revert SenderNotWhitelisted();
-        _;
-    }
+    bytes32 public constant SPENDER_ROLE = keccak256("SPENDER_ROLE");
 
     constructor(
-        address[] memory _spenders,
+        address[] memory spenders,
         address _permit2,
-        address _multisigWallet
+        address multisigWallet
     ) Permitable(_permit2) {
-        uint256 length = _spenders.length;
+        uint256 length = spenders.length;
         for (uint256 i = 0; i < length; ) {
-            address spender = _spenders[i];
+            address spender = spenders[i];
             if (spender == address(0)) revert ZeroAddress();
 
-            whitelistedSpenders[spender] = true;
-            emit SpenderAdded(spender);
-
+            _grantRole(SPENDER_ROLE, spender);
             unchecked {
                 ++i;
             }
         }
 
-        if (_multisigWallet == address(0)) revert ZeroAddress();
-        _grantRole(DEFAULT_ADMIN_ROLE, _multisigWallet);
+        if (multisigWallet == address(0)) revert ZeroAddress();
+        _grantRole(DEFAULT_ADMIN_ROLE, multisigWallet);
     }
 
-    function executePermitTransferBatch(PermitTransferParams[] calldata params) external onlyWhitelistedSpender {
+    function executePermitTransferBatch(PermitTransferParams[] calldata params) external onlyRole(SPENDER_ROLE) {
         uint256 totalLength = params.length;
         for (uint256 i = 0; i < totalLength; ) {
             executePermitTransfer(params[i]);
-            
             unchecked {
                 ++i;
             }
         }
     }
 
-    function executePermitTransfer(PermitTransferParams calldata params) public onlyWhitelistedSpender {
+    function executePermitTransfer(PermitTransferParams calldata params) public onlyRole(SPENDER_ROLE) {
         if (params.owner == address(0) || params.recipient == address(0) || params.token == address(0)) {
             revert ZeroAddress();
         }
@@ -63,12 +55,9 @@ contract PermitManager is Permitable, IPermitManager, AccessControl {
         uint256 length = spenders.length;
         for (uint256 i = 0; i < length; ) {
             address spender = spenders[i];
-            if (whitelistedSpenders[spender]) revert SenderAlreadyWhitelisted();
             if (spender == address(0)) revert ZeroAddress();
 
-            whitelistedSpenders[spender] = true;
-            emit SpenderAdded(spender);
-
+            _grantRole(SPENDER_ROLE, spender);
             unchecked {
                 ++i;
             }
@@ -78,12 +67,7 @@ contract PermitManager is Permitable, IPermitManager, AccessControl {
     function removeSpenders(address[] calldata spenders) external onlyRole(DEFAULT_ADMIN_ROLE) {
         uint256 length = spenders.length;
         for (uint256 i = 0; i < length; ) {
-            address spender = spenders[i];
-            if (!whitelistedSpenders[spender]) revert SenderNotWhitelisted();
-
-            whitelistedSpenders[spender] = false;
-            emit SpenderRemoved(spender);
-
+            _revokeRole(SPENDER_ROLE, spenders[i]);
             unchecked {
                 ++i;
             }
