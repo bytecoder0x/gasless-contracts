@@ -1,6 +1,6 @@
 import { TypedDataDomain } from 'ethers';
 import { ethers } from 'hardhat';
-import { IPermit2, MockERC20, MockERC20Permit } from '../../typechain-types';
+import { IPermit2, MockDaiPermit, MockERC20, MockERC20Permit } from '../../typechain-types';
 import { HardhatEthersSigner } from '@nomicfoundation/hardhat-ethers/signers';
 import { Signature } from 'ethers';
 import { AllowanceTransfer } from '@uniswap/permit2-sdk';
@@ -58,8 +58,57 @@ export const getSignatureERC20Permit = async (
   return permitCallToken;
 };
 
+export const getSignatureDAIPermit = async (daiToken: MockDaiPermit, from: HardhatEthersSigner) => {
+  const chainId = (await ethers.provider.getNetwork()).chainId;
+  const deadline = Math.floor(Date.now() / 1000) + 3600;
+  const nonce = await daiToken.nonces(from);
+
+  const domain = {
+    name: await daiToken.name(),
+    version: await daiToken.version(),
+    chainId: chainId,
+    verifyingContract: daiToken.target.toString(),
+  };
+
+  const types = {
+    Permit: [
+      { name: 'holder', type: 'address' },
+      { name: 'spender', type: 'address' },
+      { name: 'nonce', type: 'uint256' },
+      { name: 'expiry', type: 'uint256' },
+      { name: 'allowed', type: 'bool' },
+    ],
+  };
+
+  const values = {
+    holder: from.address,
+    spender: permit2Addr,
+    nonce,
+    expiry: deadline,
+    allowed: true,
+  };
+
+  const signature = await from.signTypedData(domain, types, values);
+  const { v, r, s } = ethers.Signature.from(signature);
+
+  const permitCallToken = cutSelector(
+    daiToken.interface.encodeFunctionData('permit', [
+      from.address,
+      permit2Addr,
+      nonce,
+      deadline,
+      true,
+      v,
+      r,
+      s,
+    ]),
+  );
+
+  return permitCallToken;
+};
+
 export const getPermitSingleSignature = async (
-  erc20: MockERC20 | MockERC20Permit,
+  erc20: MockERC20 | MockDaiPermit | MockERC20Permit,
   from: HardhatEthersSigner,
   spender: string,
   permit2: IPermit2,
