@@ -12,12 +12,12 @@ import {
   MockDaiPermit,
   MockERC20Permit,
 } from '../../typechain-types';
-import { getSignatureERC20Permit, getPermitSingleSignature, getSignatureDAIPermit } from './utils';
+import { getSignatureERC20Permit, getPermitSingleSignature, getSignatureDAIPermit } from '../utils/signature-builder';
 import { deployPermit2 } from '../utils/permit2';
 
 const permit2Addr = '0x000000000022D473030F116dDEE9F6B43aC78BA3';
 
-describe.only('PermitManager', () => {
+describe('PermitManager', () => {
   let permit2: IPermit2;
   let permitManager: PermitManager;
   let erc20: MockERC20;
@@ -164,7 +164,7 @@ describe.only('PermitManager', () => {
     it('Should correctly handle with two permit', async () => {
       const amountToTransfer = ethers.parseEther('10');
 
-      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2);
+      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2, permit2Addr);
       const permitCallPermit2 = await getPermitSingleSignature(erc20Permit, user2, await permitManager.getAddress(), permit2, amountToTransfer);
 
       const balanceReceiverBefore = await erc20Permit.balanceOf(user3.address);
@@ -227,7 +227,7 @@ describe.only('PermitManager', () => {
     it('Should correctly handle batch permit transfer', async () => {
       const amountToTransfer = ethers.parseEther('10');
 
-      const permitCallTokenFromUser2 = await getSignatureERC20Permit(erc20Permit, user2);
+      const permitCallTokenFromUser2 = await getSignatureERC20Permit(erc20Permit, user2, permit2Addr);
       const permitCallPermit2FromUser2 = await getPermitSingleSignature(erc20Permit, user2, await permitManager.getAddress(), permit2, amountToTransfer);
       
       const balanceUser2Before = await erc20Permit.balanceOf(user2.address);
@@ -243,7 +243,7 @@ describe.only('PermitManager', () => {
         permit2Data: permitCallPermit2FromUser2,
       };
 
-      const permitCallTokenFromUser3 = await getSignatureERC20Permit(erc20Permit, user3);
+      const permitCallTokenFromUser3 = await getSignatureERC20Permit(erc20Permit, user3, permit2Addr);
       const permitCallPermit2FromUser3 = await getPermitSingleSignature(erc20Permit, user3, await permitManager.getAddress(), permit2, amountToTransfer);
 
       const permitTransferParamsFromUser3 = {
@@ -270,7 +270,7 @@ describe.only('PermitManager', () => {
       const allowedAmountToTransfer = ethers.parseEther('2000');
       const amountToTransfer = allowedAmountToTransfer / 2n;
 
-      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2);
+      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2, permit2Addr);
       const permitCallPermit2 = await getPermitSingleSignature(erc20Permit, user2, await permitManager.getAddress(), permit2, allowedAmountToTransfer);
 
       const balanceReceiverBefore = await erc20Permit.balanceOf(user3.address);
@@ -312,7 +312,7 @@ describe.only('PermitManager', () => {
     it('Should correctly handle permit transfer with DAI token', async () => {
       const amountToTransfer = ethers.parseEther('100');
 
-      const permitCallToken = await getSignatureDAIPermit(daiToken, user2);
+      const permitCallToken = await getSignatureDAIPermit(daiToken, user2, permit2Addr);
       const permitCallPermit2 = await getPermitSingleSignature(daiToken, user2, await permitManager.getAddress(), permit2, amountToTransfer);
       
       const balanceReceiverBefore = await daiToken.balanceOf(user3.address);
@@ -344,7 +344,7 @@ describe.only('PermitManager', () => {
       const allowedAmountToTransfer = ethers.parseEther('2000');
       const amountToTransfer = allowedAmountToTransfer / 2n;
 
-      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2);
+      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2, permit2Addr);
       const permitCallPermit2 = await getPermitSingleSignature(erc20Permit, user2, await permitManager.getAddress(), permit2, allowedAmountToTransfer);
 
       const permitTransferParams = {
@@ -364,7 +364,7 @@ describe.only('PermitManager', () => {
       expect(allowanceDataToken).to.equal(ethers.MaxUint256);
 
       // do again same transfer with new signature
-      const newPermitCallToken = await getSignatureERC20Permit(erc20Permit, user2);
+      const newPermitCallToken = await getSignatureERC20Permit(erc20Permit, user2, permit2Addr);
       const newPermitCallPermit2 = await getPermitSingleSignature(erc20Permit, user2, await permitManager.getAddress(), permit2, allowedAmountToTransfer);
       permitTransferParams.tokenData = newPermitCallToken;
       permitTransferParams.permit2Data = newPermitCallPermit2;
@@ -381,7 +381,7 @@ describe.only('PermitManager', () => {
     it('Should correctly skip transfer permit if zero amount', async () => {
       const amountToTransfer = ethers.parseEther('10');
 
-      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2);
+      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2, permit2Addr);
       const permitCallPermit2 = await getPermitSingleSignature(erc20Permit, user2, await permitManager.getAddress(), permit2, amountToTransfer);
       
       const permitTransferParams = {
@@ -440,7 +440,7 @@ describe.only('PermitManager', () => {
 
     it('Should prevent execute permit transfer if zero address', async () => {
       const amountToTransfer = ethers.parseEther('10');
-      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2);
+      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2, permit2Addr);
       const permitCallPermit2 = await getPermitSingleSignature(erc20Permit, user2, await permitManager.getAddress(), permit2, amountToTransfer);
 
       const permitTransferParams = {
@@ -475,7 +475,7 @@ describe.only('PermitManager', () => {
 
     it('Should prevent execute permit transfer by non-spender', async () => {
       const amountToTransfer = ethers.parseEther('10');
-      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2);
+      const permitCallToken = await getSignatureERC20Permit(erc20Permit, user2, permit2Addr);
       const permitCallPermit2 = await getPermitSingleSignature(erc20Permit, user2, await permitManager.getAddress(), permit2, amountToTransfer);
       
       const permitTransferParams = {
@@ -493,7 +493,7 @@ describe.only('PermitManager', () => {
         .withArgs(user1.address, await permitManager.SPENDER_ROLE());
 
       await expect(
-        permitManager.connect(user1).executePermitTransferBatch([permitTransferParams]),
+        permitManager.connect(user2).executePermitTransferBatch([permitTransferParams]),
       ).to.be.revertedWithCustomError(permitManager, 'AccessControlUnauthorizedAccount')
         .withArgs(user2.address, await permitManager.SPENDER_ROLE());
     });

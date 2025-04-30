@@ -36,4 +36,6 @@ interface IPermit2 {
     function permit(address owner, PermitSingle memory permitSingle, bytes calldata signature) external;
 
     function allowance(address user, address token, address spender) external view returns (PackedAllowance memory);
+
+    function approve(address token, address spender, uint160 amount, uint48 expiration) external;
 }
