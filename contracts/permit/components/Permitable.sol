@@ -7,22 +7,43 @@ import {IERC20Permit} from "@openzeppelin/contracts/token/ERC20/extensions/IERC2
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 abstract contract Permitable {
+    /// @notice The Permit2 contract instance used for token approvals
     IPermit2 public immutable permit2;
 
+    /// @dev Error thrown when the address is zero
     error ZeroAddress();
+    /// @dev Error thrown when the permit fails
     error PermitFailed();
+    /// @dev Error thrown when the permit length for signature is incorrect
     error PermitLengthError();
 
+    /**
+     * @dev Constructor
+     * @param _permit2 The address of the Permit2 contract
+     */
     constructor(address _permit2) {
         if (_permit2 == address(0)) revert ZeroAddress();
         permit2 = IPermit2(_permit2);
     }
 
+    /**
+     * @dev Makes a token permit for EIP-2612 or DAI
+     * @param token The address of the token
+     * @param owner The address of the owner
+     * @param permit The signature of the permit (EIP-2612 or DAI)
+     */
     function _makeTokenPermit(address token, address owner, bytes calldata permit) internal {
         if (IERC20(token).allowance(owner, address(permit2)) == type(uint256).max) return;
         _safePermit(IERC20(token), owner, permit);
     }
 
+    /**
+     * @dev Makes a token permit for Permit2
+     * @param token The address of the token
+     * @param owner The address of the owner
+     * @param amount The amount of the token
+     * @param permit2Data The signature of the Permit2
+     */
     function _makePermit2(address token, address owner, uint256 amount, bytes calldata permit2Data) internal {
         IPermit2.PackedAllowance memory allowanceData = permit2.allowance(
             owner,
@@ -34,16 +55,37 @@ abstract contract Permitable {
         _safePermit(IERC20(token), owner, permit2Data);
     }
 
+    /**
+     * @dev Transfers the payment from the owner to the recipient
+     * @param token The address of the token
+     * @param owner The address of the owner
+     * @param to The address of the recipient
+     * @param amount The amount of the token
+     */
     function _transferPayment(address token, address owner, address to, uint256 amount) internal {
         if (amount > 0) {
             permit2.transferFrom(owner, to, uint160(amount), token);
         }
     }
 
+    /**
+     * @dev Tries to make a permit with the given permit data
+     * @param token The address of the token
+     * @param owner The address of the owner
+     * @param permit The permit data
+     */
     function _safePermit(IERC20 token, address owner, bytes calldata permit) private {
         if (!_tryPermit(token, owner, address(this), permit)) revert PermitFailed();
     }
 
+    /**
+     * @dev Tries to make a permit with the given permit data 
+     * @dev That function from one inch (https://www.codeslaw.app/contracts/ethereum/0x111111125421cA6dc452d289314280a0f8842A65)
+     * @param token The address of the token
+     * @param owner The address of the owner of the token
+     * @param spender The address of the spender that can spend the token
+     * @param permit The signature of the permit (EIP-2612 or DAI or Permit2)
+     */
     function _tryPermit(
         IERC20 token,
         address owner,
