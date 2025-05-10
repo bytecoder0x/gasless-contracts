@@ -284,6 +284,22 @@ describe("Relayer", function () {
             expect(await paymentToken.balanceOf(treasury.address)).to.equal(paymentAmount + paymentAmount);
         });
 
+        it("Should prevent relay batch if arrays have different lengths", async () => {
+            const data = token.interface.encodeFunctionData("transfer", [user3.address, ethers.parseEther("100")]);
+            const request = await getSignatureForwardRequest(forwarder, user1, token.target.toString(), data);
+            const paymentData = { payer: user1.address, token: paymentToken.target, amount: 0 };
+
+            await expect(
+                relayer.connect(operator).relayCallBatch([request], [paymentData, paymentData], ["0x"], ["0x"])
+            ).to.be.revertedWithCustomError(relayer, "ArraysLengthMismatch");
+            await expect(
+                relayer.connect(operator).relayCallBatch([request], [paymentData], ["0x", "0x"], ["0x"])
+            ).to.be.revertedWithCustomError(relayer, "ArraysLengthMismatch");
+            await expect(
+                relayer.connect(operator).relayCallBatch([request], [paymentData], ["0x"], [])
+            ).to.be.revertedWithCustomError(relayer, "ArraysLengthMismatch");
+        });
+
         it("Should prevent relay batch if called by non-operator", async () => {
             await expect(relayer.connect(user1).relayCallBatch([], [], [], []))
                 .to.be.revertedWithCustomError(relayer, "AccessControlUnauthorizedAccount")

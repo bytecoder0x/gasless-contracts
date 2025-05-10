@@ -54,7 +54,9 @@ contract Relayer is IRelayer, AccessControl {
         bytes[] calldata permitSingleSignatures
     ) external onlyRole(OPERATOR_ROLE) {
         uint256 length = requests.length;
-        if (length != paymentDatas.length) revert ArraysLengthMismatch();
+        if (length != paymentDatas.length || length != tokenSignatures.length || length != permitSingleSignatures.length) {
+            revert ArraysLengthMismatch();
+        }
 
         for (uint256 i = 0; i < length; ) {
             relayCall(requests[i], paymentDatas[i], tokenSignatures[i], permitSingleSignatures[i]);
