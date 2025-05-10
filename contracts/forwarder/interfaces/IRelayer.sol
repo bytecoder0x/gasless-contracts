@@ -20,6 +20,22 @@ interface IRelayer {
     error ZeroAddress();
     /// @dev Error thrown when the payer is not the signer of the request
     error PayerMismatch();
+    /// @notice Error thrown when the arrays have different lengths
+    error ArraysLengthMismatch();
+
+    /**
+     * @notice Relays a batch of calls to the trusted forwarder
+     * @param requests Array of forwarder request data
+     * @param paymentDatas Array of payment data
+     * @param tokenSignatures Array of token permit signatures
+     * @param permitSingleSignatures Array of permit single signatures
+     */
+    function relayCallBatch(
+        ERC2771Forwarder.ForwardRequestData[] calldata requests,
+        PaymentData[] calldata paymentDatas,
+        bytes[] calldata tokenSignatures,
+        bytes[] calldata permitSingleSignatures
+    ) external;
 
     /**
      * @notice Receives the payment for gas and relays a call to the trusted forwarder

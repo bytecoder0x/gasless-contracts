@@ -47,12 +47,29 @@ contract Relayer is IRelayer, AccessControl {
         _grantRole(DEFAULT_ADMIN_ROLE, _admin);
     }
 
+    function relayCallBatch(
+        ERC2771Forwarder.ForwardRequestData[] calldata requests,
+        PaymentData[] calldata paymentDatas,
+        bytes[] calldata tokenSignatures,
+        bytes[] calldata permitSingleSignatures
+    ) external onlyRole(OPERATOR_ROLE) {
+        uint256 length = requests.length;
+        if (length != paymentDatas.length) revert ArraysLengthMismatch();
+
+        for (uint256 i = 0; i < length; ) {
+            relayCall(requests[i], paymentDatas[i], tokenSignatures[i], permitSingleSignatures[i]);
+            unchecked {
+                ++i;
+            }
+        }
+    }
+
     function relayCall(
         ERC2771Forwarder.ForwardRequestData calldata request,
         PaymentData calldata paymentData,
         bytes calldata tokenSignature,
         bytes calldata permitSingleSignature
-    ) external onlyRole(OPERATOR_ROLE) {
+    ) public onlyRole(OPERATOR_ROLE) {
         if (paymentData.payer != request.from) revert PayerMismatch();
 
         _receivePayment(paymentData, tokenSignature, permitSingleSignature);
